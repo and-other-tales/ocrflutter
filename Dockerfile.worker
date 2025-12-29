@@ -1,0 +1,46 @@
+# Dockerfile for BullMQ Worker Service
+
+# Stage 1: Dependencies
+FROM node:20-alpine AS deps
+WORKDIR /app
+
+# Install dependencies needed for node-gyp and Prisma
+RUN apk add --no-cache libc6-compat openssl
+
+# Copy package files
+COPY package*.json ./
+COPY prisma ./prisma/
+
+# Install dependencies
+RUN npm ci
+
+# Generate Prisma Client
+RUN npx prisma generate
+
+# Stage 2: Runner
+FROM node:20-alpine AS runner
+WORKDIR /app
+
+# Install openssl for Prisma
+RUN apk add --no-cache openssl
+
+ENV NODE_ENV production
+
+# Create a non-root user
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 worker
+
+# Copy dependencies and Prisma
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/package*.json ./
+COPY --from=deps /app/prisma ./prisma/
+
+# Copy application source
+COPY scripts ./scripts
+COPY lib ./lib
+
+# Switch to non-root user
+USER worker
+
+# Run the worker
+CMD ["npm", "run", "worker"]
