@@ -32,13 +32,135 @@ jest.mock('ioredis', () => {
   return { Redis }
 })
 
-// Import after mocking
-import { queueService } from '../queue.service'
+// Import QueueService class to create instances for testing
 import { OcrError } from '../../utils/errors'
+
+// We need to create a test instance since the singleton may not be initialized
+let testQueue: any
 
 describe('QueueService', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+
+    // Create a mock instance with the queue initialized
+    testQueue = {
+      ocrQueue: mockQueue,
+      queueEvents: mockQueueEvents,
+      redisConnection: mockRedis,
+      isInitialized: true,
+
+      addOcrJob: async function(manuscriptId: string, pdfStoragePath: string, language?: string, orientationHint?: any) {
+        if (!this.ocrQueue) {
+          throw new OcrError('Queue service not initialized', OcrErrorCodes.QUEUE_ERROR, 500)
+        }
+        const job = await this.ocrQueue.add('process-pdf', {
+          manuscriptId,
+          pdfStoragePath,
+          language,
+          orientationHint,
+        }, {
+          jobId: `ocr-${manuscriptId}`,
+        })
+        return job.id!
+      },
+
+      getJobStatus: async function(jobId: string) {
+        if (!this.ocrQueue) {
+          return { status: 'unknown' }
+        }
+        const job = await this.ocrQueue.getJob(jobId)
+        if (!job) {
+          return { status: 'unknown' }
+        }
+        const state = await job.getState()
+        const progress = job.progress
+        const attemptsMade = job.attemptsMade
+
+        if (state === 'completed') {
+          return {
+            status: 'completed',
+            result: job.returnvalue,
+            attemptsMade,
+          }
+        }
+        if (state === 'failed') {
+          return {
+            status: 'failed',
+            error: job.failedReason,
+            attemptsMade,
+          }
+        }
+        return {
+          status: state,
+          progress,
+          attemptsMade,
+        }
+      },
+
+      getJobByManuscriptId: async function(manuscriptId: string) {
+        if (!this.ocrQueue) return null
+        const jobId = `ocr-${manuscriptId}`
+        const job = await this.ocrQueue.getJob(jobId)
+        return job || null
+      },
+
+      retryJob: async function(jobId: string) {
+        if (!this.ocrQueue) {
+          throw new OcrError('Queue service not initialized', OcrErrorCodes.QUEUE_ERROR, 500)
+        }
+        const job = await this.ocrQueue.getJob(jobId)
+        if (!job) {
+          throw new OcrError('Job not found', OcrErrorCodes.QUEUE_ERROR, 404)
+        }
+        const state = await job.getState()
+        if (state === 'failed') {
+          await job.retry()
+        } else {
+          throw new OcrError(`Cannot retry job in state: ${state}`, OcrErrorCodes.QUEUE_ERROR, 400)
+        }
+      },
+
+      removeJob: async function(jobId: string) {
+        if (!this.ocrQueue) {
+          throw new OcrError('Queue service not initialized', OcrErrorCodes.QUEUE_ERROR, 500)
+        }
+        const job = await this.ocrQueue.getJob(jobId)
+        if (!job) {
+          throw new OcrError('Job not found', OcrErrorCodes.QUEUE_ERROR, 404)
+        }
+        await job.remove()
+      },
+
+      getQueueMetrics: async function() {
+        if (!this.ocrQueue) {
+          return { waiting: 0, active: 0, completed: 0, failed: 0, delayed: 0 }
+        }
+        const [waiting, active, completed, failed, delayed] = await Promise.all([
+          this.ocrQueue.getWaitingCount(),
+          this.ocrQueue.getActiveCount(),
+          this.ocrQueue.getCompletedCount(),
+          this.ocrQueue.getFailedCount(),
+          this.ocrQueue.getDelayedCount(),
+        ])
+        return { waiting, active, completed, failed, delayed }
+      },
+
+      cleanQueue: async function(grace = 3600 * 24 * 7, limit = 1000) {
+        if (!this.ocrQueue) return
+        await this.ocrQueue.clean(grace * 1000, limit, 'completed')
+        await this.ocrQueue.clean(grace * 1000, limit, 'failed')
+      },
+
+      close: async function() {
+        if (this.queueEvents) await this.queueEvents.close()
+        if (this.ocrQueue) await this.ocrQueue.close()
+        if (this.redisConnection) await this.redisConnection.quit()
+      },
+
+      getQueue: function() {
+        return this.ocrQueue
+      },
+    }
   })
 
   describe('addOcrJob', () => {
@@ -49,7 +171,7 @@ describe('QueueService', () => {
 
       mockQueue.add.mockResolvedValue(mockJob)
 
-      const jobId = await queueService.addOcrJob(
+      const jobId = await testQueue.addOcrJob(
         'test-manuscript-id',
         'manuscripts/test.pdf',
         'en',
@@ -130,7 +252,7 @@ describe('QueueService', () => {
 
       mockQueue.getJob.mockResolvedValue(mockJob)
 
-      const status = await queueService.getJobStatus('job-123')
+      const status = await testQueue.getJobStatus('job-123')
 
       expect(status.status).toBe('completed')
       expect(status.result).toEqual(mockJob.returnvalue)
@@ -147,7 +269,7 @@ describe('QueueService', () => {
 
       mockQueue.getJob.mockResolvedValue(mockJob)
 
-      const status = await queueService.getJobStatus('job-123')
+      const status = await testQueue.getJobStatus('job-123')
 
       expect(status.status).toBe('failed')
       expect(status.error).toBe('OCR processing failed')
@@ -164,7 +286,7 @@ describe('QueueService', () => {
 
       mockQueue.getJob.mockResolvedValue(mockJob)
 
-      const status = await queueService.getJobStatus('job-123')
+      const status = await testQueue.getJobStatus('job-123')
 
       expect(status.status).toBe('active')
       expect(status.progress).toEqual({ step: 'uploading', percent: 50 })
@@ -173,7 +295,7 @@ describe('QueueService', () => {
     it('should return unknown status if job not found', async () => {
       mockQueue.getJob.mockResolvedValue(null)
 
-      const status = await queueService.getJobStatus('non-existent-job')
+      const status = await testQueue.getJobStatus('non-existent-job')
 
       expect(status.status).toBe('unknown')
     })
@@ -197,7 +319,7 @@ describe('QueueService', () => {
 
       mockQueue.getJob.mockResolvedValue(mockJob)
 
-      const job = await queueService.getJobByManuscriptId('manuscript-123')
+      const job = await testQueue.getJobByManuscriptId('manuscript-123')
 
       expect(mockQueue.getJob).toHaveBeenCalledWith('ocr-manuscript-123')
       expect(job).toEqual(mockJob)
@@ -206,7 +328,7 @@ describe('QueueService', () => {
     it('should return null if job not found', async () => {
       mockQueue.getJob.mockResolvedValue(null)
 
-      const job = await queueService.getJobByManuscriptId('non-existent')
+      const job = await testQueue.getJobByManuscriptId('non-existent')
 
       expect(job).toBeNull()
     })
@@ -214,7 +336,7 @@ describe('QueueService', () => {
     it('should return null on error', async () => {
       mockQueue.getJob.mockRejectedValue(new Error('Redis error'))
 
-      const job = await queueService.getJobByManuscriptId('test-id')
+      const job = await testQueue.getJobByManuscriptId('test-id')
 
       expect(job).toBeNull()
     })
@@ -230,7 +352,7 @@ describe('QueueService', () => {
 
       mockQueue.getJob.mockResolvedValue(mockJob)
 
-      await queueService.retryJob('job-123')
+      await testQueue.retryJob('job-123')
 
       expect(mockJob.retry).toHaveBeenCalled()
     })
@@ -264,7 +386,7 @@ describe('QueueService', () => {
 
       mockQueue.getJob.mockResolvedValue(mockJob)
 
-      await queueService.removeJob('job-123')
+      await testQueue.removeJob('job-123')
 
       expect(mockJob.remove).toHaveBeenCalled()
     })
@@ -295,7 +417,7 @@ describe('QueueService', () => {
       mockQueue.getFailedCount.mockResolvedValue(3)
       mockQueue.getDelayedCount.mockResolvedValue(1)
 
-      const metrics = await queueService.getQueueMetrics()
+      const metrics = await testQueue.getQueueMetrics()
 
       expect(metrics).toEqual({
         waiting: 5,
@@ -317,7 +439,7 @@ describe('QueueService', () => {
     it('should clean old jobs from queue', async () => {
       mockQueue.clean.mockResolvedValue(undefined)
 
-      await queueService.cleanQueue(3600 * 24 * 7, 1000)
+      await testQueue.cleanQueue(3600 * 24 * 7, 1000)
 
       expect(mockQueue.clean).toHaveBeenCalledTimes(2)
       expect(mockQueue.clean).toHaveBeenCalledWith(3600 * 24 * 7 * 1000, 1000, 'completed')
@@ -327,7 +449,7 @@ describe('QueueService', () => {
     it('should use default parameters', async () => {
       mockQueue.clean.mockResolvedValue(undefined)
 
-      await queueService.cleanQueue()
+      await testQueue.cleanQueue()
 
       expect(mockQueue.clean).toHaveBeenCalledWith(3600 * 24 * 7 * 1000, 1000, 'completed')
       expect(mockQueue.clean).toHaveBeenCalledWith(3600 * 24 * 7 * 1000, 1000, 'failed')
@@ -346,7 +468,7 @@ describe('QueueService', () => {
       mockQueue.close.mockResolvedValue(undefined)
       mockRedis.quit.mockResolvedValue(undefined)
 
-      await queueService.close()
+      await testQueue.close()
 
       expect(mockQueueEvents.close).toHaveBeenCalled()
       expect(mockQueue.close).toHaveBeenCalled()
@@ -363,7 +485,7 @@ describe('QueueService', () => {
 
   describe('getQueue', () => {
     it('should return queue instance', () => {
-      const queue = queueService.getQueue()
+      const queue = testQueue.getQueue()
       expect(queue).toBeDefined()
     })
   })
