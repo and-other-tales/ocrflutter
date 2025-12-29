@@ -8,7 +8,14 @@ async function main() {
   console.log('🌱 Starting database seed...')
 
   // Create admin user
-  const hashedPassword = await bcrypt.hash('admin123', 10)
+  // Use ADMIN_PASSWORD from environment or default to 'admin123' for local development
+  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123'
+
+  if (!process.env.ADMIN_PASSWORD) {
+    console.log('⚠️  Warning: ADMIN_PASSWORD not set, using default password for local development')
+  }
+
+  const hashedPassword = await bcrypt.hash(adminPassword, 10)
   const admin = await prisma.admin.upsert({
     where: { email: 'admin@example.com' },
     update: {},
