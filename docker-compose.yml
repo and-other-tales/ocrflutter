@@ -55,9 +55,9 @@ services:
       - REDIS_PORT=6379
       - REDIS_PASSWORD=
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-default-dev-secret-change-in-production}
-      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:8080}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost}
       - AUTH_SECRET=${AUTH_SECRET:-default-dev-secret-change-in-production}
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
       - PORT=8080
       - HOSTNAME=0.0.0.0
@@ -116,6 +116,24 @@ services:
       - novel-ocr-network
     restart: unless-stopped
 
+  # Caddy Web Server (Reverse Proxy)
+  caddy:
+    image: caddy:latest
+    container_name: novel-ocr-caddy
+    ports:
+      - '80:80'
+      - '443:443'
+      - '8000:8000'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+    networks:
+      - novel-ocr-network
+    restart: unless-stopped
+
   # Optional: Redis Commander (Redis GUI)
   redis-commander:
     image: rediscommander/redis-commander:latest
@@ -157,4 +175,8 @@ volumes:
   redis_data:
     driver: local
   gcp-credentials:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
     driver: local
