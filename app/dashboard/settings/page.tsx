@@ -249,18 +249,6 @@ export default function SettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-sm font-medium">Account Created</span>
-                <span className="text-sm text-muted-foreground">
-                  {session?.user?.createdAt ? new Date(session.user.createdAt).toLocaleDateString() : "N/A"}
-                </span>
-              </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-sm font-medium">Last Login</span>
-                <span className="text-sm text-muted-foreground">
-                  {session?.user?.lastLogin ? new Date(session.user.lastLogin).toLocaleString() : "N/A"}
-                </span>
-              </div>
               <div className="flex justify-between py-2">
                 <span className="text-sm font-medium">User ID</span>
                 <span className="text-sm text-muted-foreground font-mono">
