@@ -172,8 +172,9 @@ Before deploying to production:
 
 ## Endpoints
 
-### Admin Panel
-- `GET /login` - Admin login page
+### Root & Admin
+- `GET /` - Redirects to https://othertales.co
+- `GET /admin` - Admin login page
 - `GET /dashboard` - Admin dashboard (requires auth)
 - `GET /dashboard/novels` - Novel management
 - `GET /dashboard/analytics` - Analytics
