@@ -527,12 +527,18 @@ class ManuscriptService {
         },
       })
 
-      // Queue new OCR job
+      // Queue new OCR job (only pass valid hints: HORIZONTAL or VERTICAL_TATEGAKI)
+      const validHint =
+        manuscript.orientationHint === 'HORIZONTAL' ||
+        manuscript.orientationHint === 'VERTICAL_TATEGAKI'
+          ? manuscript.orientationHint
+          : undefined
+
       const jobId = await queueService.addOcrJob(
         manuscript.id,
         manuscript.pdfStoragePath,
         manuscript.language,
-        manuscript.orientationHint || undefined
+        validHint
       )
 
       // Update manuscript with new job ID
