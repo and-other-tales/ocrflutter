@@ -33,6 +33,9 @@ ENV NODE_OPTIONS="--max-old-space-size=2048"
 # Build the application with extended timeout
 RUN npm run build --prefer-offline --no-audit
 
+# Ensure public directory exists (create if missing)
+RUN mkdir -p /app/public
+
 # Stage 3: Runner
 FROM node:20-alpine AS runner
 WORKDIR /app
