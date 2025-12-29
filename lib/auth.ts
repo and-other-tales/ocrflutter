@@ -1,12 +1,11 @@
-import { NextAuthOptions, User } from "next-auth"
+import NextAuth from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "./prisma"
 import { verifyPassword } from "./password"
-import { Adapter } from "next-auth/adapters"
 
-export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma) as Adapter,
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -47,7 +46,7 @@ export const authOptions: NextAuthOptions = {
           email: admin.email,
           name: admin.name,
           role: admin.role,
-        } as User
+        }
       },
     }),
   ],
@@ -60,16 +59,16 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id
         token.email = user.email
         token.name = user.name
-        token.role = user.role
+        token.role = (user as any).role
       }
       return token
     },
     async session({ session, token }) {
       if (token && session.user) {
-        session.user.id = token.id
+        (session.user as any).id = token.id
         session.user.email = token.email
         session.user.name = token.name
-        session.user.role = token.role
+        ;(session.user as any).role = token.role
       }
       return session
     },
@@ -79,4 +78,4 @@ export const authOptions: NextAuthOptions = {
     error: "/admin",
   },
   secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
-}
+})
