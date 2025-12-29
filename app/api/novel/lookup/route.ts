@@ -1,8 +1,21 @@
 import { NextRequest, NextResponse } from "next/server"
 import { lookupService } from "@/lib/services/lookup.service"
+import { rateLimitRequest } from "@/lib/middleware/rateLimit"
 
 export async function POST(request: NextRequest) {
   try {
+    // Apply rate limiting
+    const rateLimitResult = await rateLimitRequest(request)
+
+    // If rate limit is exceeded, return the error response
+    if (rateLimitResult && 'headers' in rateLimitResult && rateLimitResult.headers) {
+      // Rate limit passed, but we have headers to include
+      const apiKey = rateLimitResult.apiKey
+    } else if (rateLimitResult) {
+      // Rate limit exceeded or error
+      return rateLimitResult
+    }
+
     const body = await request.json()
 
     // Accept both formats: { lines: [[],[],[]] } or { line1: [], line2: [], line3: [] }
@@ -47,17 +60,26 @@ export async function POST(request: NextRequest) {
 
     const result = await lookupService.lookup(lines)
 
+    // Prepare rate limit headers
+    const headers: Record<string, string> = {}
+    if (rateLimitResult && 'headers' in rateLimitResult && rateLimitResult.headers) {
+      Object.assign(headers, rateLimitResult.headers)
+    }
+
     if (result.match) {
-      return NextResponse.json({
-        success: true,
-        data: {
-          url: result.novel?.url,
-          title: result.novel?.title,
-          unlockContent: result.novel?.unlockContent,
+      return NextResponse.json(
+        {
+          success: true,
+          data: {
+            url: result.novel?.url,
+            title: result.novel?.title,
+            unlockContent: result.novel?.unlockContent,
+          },
+          match: true,
+          responseTimeMs: result.responseTimeMs,
         },
-        match: true,
-        responseTimeMs: result.responseTimeMs,
-      })
+        { headers }
+      )
     } else {
       return NextResponse.json(
         {
@@ -67,7 +89,7 @@ export async function POST(request: NextRequest) {
           suggestions: result.suggestions,
           responseTimeMs: result.responseTimeMs,
         },
-        { status: 404 }
+        { status: 404, headers }
       )
     }
   } catch (error: any) {
