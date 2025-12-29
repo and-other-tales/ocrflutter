@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import {
   LayoutDashboard,
   BookOpen,
+  FileText,
   BarChart3,
   Activity,
   TestTube,
@@ -23,6 +24,11 @@ const navigation = [
     name: "Novels",
     href: "/dashboard/novels",
     icon: BookOpen,
+  },
+  {
+    name: "Manuscripts",
+    href: "/dashboard/manuscripts",
+    icon: FileText,
   },
   {
     name: "Analytics",
