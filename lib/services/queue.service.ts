@@ -159,6 +159,10 @@ class QueueService {
     error?: string
     attemptsMade?: number
   }> {
+    if (!this.ocrQueue) {
+      return { status: 'unknown' }
+    }
+
     try {
       const job = await this.ocrQueue.getJob(jobId)
 
@@ -205,6 +209,8 @@ class QueueService {
    * Get job by manuscript ID
    */
   async getJobByManuscriptId(manuscriptId: string): Promise<Job<OcrJobData, OcrJobResult> | undefined | null> {
+    if (!this.ocrQueue) return null
+
     try {
       const jobId = `ocr-${manuscriptId}`
       const job = await this.ocrQueue.getJob(jobId)
@@ -219,6 +225,10 @@ class QueueService {
    * Retry a failed job
    */
   async retryJob(jobId: string): Promise<void> {
+    if (!this.ocrQueue) {
+      throw new OcrError('Queue service not initialized', OcrErrorCodes.QUEUE_ERROR, 500)
+    }
+
     try {
       const job = await this.ocrQueue.getJob(jobId)
 
@@ -255,6 +265,10 @@ class QueueService {
    * Remove a job from the queue
    */
   async removeJob(jobId: string): Promise<void> {
+    if (!this.ocrQueue) {
+      throw new OcrError('Queue service not initialized', OcrErrorCodes.QUEUE_ERROR, 500)
+    }
+
     try {
       const job = await this.ocrQueue.getJob(jobId)
 
@@ -287,6 +301,10 @@ class QueueService {
     failed: number
     delayed: number
   }> {
+    if (!this.ocrQueue) {
+      return { waiting: 0, active: 0, completed: 0, failed: 0, delayed: 0 }
+    }
+
     try {
       const [waiting, active, completed, failed, delayed] = await Promise.all([
         this.ocrQueue.getWaitingCount(),
@@ -320,6 +338,8 @@ class QueueService {
     grace: number = 3600 * 24 * 7, // 7 days
     limit: number = 1000
   ): Promise<void> {
+    if (!this.ocrQueue) return
+
     try {
       await this.ocrQueue.clean(grace * 1000, limit, 'completed')
       await this.ocrQueue.clean(grace * 1000, limit, 'failed')
@@ -339,9 +359,9 @@ class QueueService {
    */
   async close(): Promise<void> {
     try {
-      await this.queueEvents.close()
-      await this.ocrQueue.close()
-      await this.redisConnection.quit()
+      if (this.queueEvents) await this.queueEvents.close()
+      if (this.ocrQueue) await this.ocrQueue.close()
+      if (this.redisConnection) await this.redisConnection.quit()
       console.log('[Queue] Closed all connections')
     } catch (error: any) {
       console.error('[Queue] Failed to close connections:', error)
@@ -351,7 +371,7 @@ class QueueService {
   /**
    * Get the queue instance (for worker)
    */
-  getQueue(): Queue<OcrJobData, OcrJobResult> {
+  getQueue(): Queue<OcrJobData, OcrJobResult> | null {
     return this.ocrQueue
   }
 }
