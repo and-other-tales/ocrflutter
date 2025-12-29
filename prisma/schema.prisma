@@ -16,6 +16,21 @@ enum Role {
   VIEWER
 }
 
+enum OcrStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  LOW_CONFIDENCE
+}
+
+enum TextOrientation {
+  HORIZONTAL
+  VERTICAL_TATEGAKI
+  MIXED
+  UNKNOWN
+}
+
 model Admin {
   id        String    @id @default(cuid())
   email     String    @unique
@@ -28,27 +43,28 @@ model Admin {
 }
 
 model Novel {
-  id             String      @id @default(cuid())
+  id             String       @id @default(cuid())
   title          String
   isbn           String?
-  line1          String      // First 3 words (lowercase)
-  line2          String      // First 3 words (lowercase)
-  line3          String      // First 3 words (lowercase)
-  line1Raw       String?     @map("line1_raw") // Full first line for reference
-  line2Raw       String?     @map("line2_raw") // Full second line for reference
-  line3Raw       String?     @map("line3_raw") // Full third line for reference
-  url            String      // Target URL for this novel
-  language       String      @default("en") // Language code: en, sv, it, etc.
-  chapter        String?     // Optional chapter identifier
-  pageNumber     Int?        @map("page_number") // Optional page number
-  unlockContent  String?     @map("unlock_content") // Optional content ID to unlock
-  metadata       Json?       // Additional flexible metadata
-  createdAt      DateTime    @default(now()) @map("created_at")
-  updatedAt      DateTime    @updatedAt @map("updated_at")
-  createdBy      String?     @map("created_by") // Email or ID of creator
+  line1          String       // First 3 words (lowercase)
+  line2          String       // First 3 words (lowercase)
+  line3          String       // First 3 words (lowercase)
+  line1Raw       String?      @map("line1_raw") // Full first line for reference
+  line2Raw       String?      @map("line2_raw") // Full second line for reference
+  line3Raw       String?      @map("line3_raw") // Full third line for reference
+  url            String       // Target URL for this novel
+  language       String       @default("en") // Language code: en, sv, it, etc.
+  chapter        String?      // Optional chapter identifier
+  pageNumber     Int?         @map("page_number") // Optional page number
+  unlockContent  String?      @map("unlock_content") // Optional content ID to unlock
+  metadata       Json?        // Additional flexible metadata
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  createdBy      String?      @map("created_by") // Email or ID of creator
 
   // Relations
   lookupLogs     LookupLog[]
+  manuscript     Manuscript?
 
   // Indexes for fast lookup
   @@index([line1, line2, line3])
@@ -92,6 +108,70 @@ model ApiKey {
 
   @@index([key])
   @@index([isActive])
+}
+
+model Manuscript {
+  id                 String            @id @default(cuid())
+
+  // Basic metadata (from upload)
+  title              String
+  author             String?
+  language           String            @default("en")
+  orientationHint    TextOrientation?  @map("orientation_hint")
+
+  // File information
+  originalFilename   String            @map("original_filename")
+  fileSize           Int               @map("file_size") // bytes
+  mimeType           String            @map("mime_type")
+  pdfStorageUrl      String            @map("pdf_storage_url") // GCS URL
+  pdfStoragePath     String            @map("pdf_storage_path") // GCS path for deletion
+
+  // OCR Processing
+  ocrStatus          OcrStatus         @default(PENDING) @map("ocr_status")
+  ocrJobId           String?           @unique @map("ocr_job_id")
+  ocrProcessedAt     DateTime?         @map("ocr_processed_at")
+  ocrConfidence      Float?            @map("ocr_confidence") // 0-100
+  textOrientation    TextOrientation?  @map("text_orientation") // detected
+  ocrErrorMessage    String?           @map("ocr_error_message")
+  ocrRetryCount      Int               @default(0) @map("ocr_retry_count")
+
+  // Extracted words (JSONB)
+  extractedWords     Json?             @map("extracted_words")
+  // Structure: {
+  //   line1Words: ["word1", "word2", "word3"],
+  //   line2Words: ["word1", "word2", "word3"],
+  //   line3Words: ["word1", "word2", "word3"],
+  //   rawText: "full text from first page",
+  //   confidence: 85.5,
+  //   orientation: "HORIZONTAL",
+  //   metadata: {
+  //     detectedLanguage: "ja",
+  //     totalBlocks: 15,
+  //     processingTimeMs: 3421
+  //   }
+  // }
+
+  // Manual corrections
+  manuallyEdited     Boolean           @default(false) @map("manually_edited")
+  editedBy           String?           @map("edited_by")
+  editedAt           DateTime?         @map("edited_at")
+
+  // Relationship to Novel (if converted)
+  convertedToNovelId String?           @unique @map("converted_to_novel_id")
+  convertedToNovel   Novel?            @relation(fields: [convertedToNovelId], references: [id], onDelete: SetNull)
+
+  // Timestamps and tracking
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+  uploadedBy         String            @map("uploaded_by") // Admin email
+
+  // Indexes
+  @@index([ocrStatus])
+  @@index([uploadedBy])
+  @@index([createdAt])
+  @@index([language])
+  @@index([ocrJobId])
+  @@map("manuscripts")
 }
 
 // NextAuth.js models
