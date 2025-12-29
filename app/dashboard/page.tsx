@@ -3,6 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BookOpen, Activity, TrendingUp, Clock } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 
+// Prevent static generation for this dynamic page
+export const dynamic = "force-dynamic"
+
 async function getDashboardMetrics() {
   const [totalNovels, totalLogs, todayLogs, successfulLogs] = await Promise.all([
     prisma.novel.count(),
