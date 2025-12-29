@@ -7,14 +7,13 @@ export async function POST(request: NextRequest) {
     // Apply rate limiting
     const rateLimitResult = await rateLimitRequest(request)
 
-    // If rate limit is exceeded, return the error response
-    if (rateLimitResult && 'headers' in rateLimitResult && rateLimitResult.headers) {
-      // Rate limit passed, but we have headers to include
-      const apiKey = rateLimitResult.apiKey
-    } else if (rateLimitResult) {
-      // Rate limit exceeded or error
+    // Check if rate limit returned an error response
+    if (rateLimitResult && rateLimitResult instanceof NextResponse) {
       return rateLimitResult
     }
+
+    // Extract rate limit headers if present
+    const rateLimitHeaders = rateLimitResult && 'headers' in rateLimitResult ? rateLimitResult.headers : {}
 
     const body = await request.json()
 
@@ -60,12 +59,6 @@ export async function POST(request: NextRequest) {
 
     const result = await lookupService.lookup(lines)
 
-    // Prepare rate limit headers
-    const headers: Record<string, string> = {}
-    if (rateLimitResult && 'headers' in rateLimitResult && rateLimitResult.headers) {
-      Object.assign(headers, rateLimitResult.headers)
-    }
-
     if (result.match) {
       return NextResponse.json(
         {
@@ -78,7 +71,7 @@ export async function POST(request: NextRequest) {
           match: true,
           responseTimeMs: result.responseTimeMs,
         },
-        { headers }
+        { headers: rateLimitHeaders }
       )
     } else {
       return NextResponse.json(
@@ -89,7 +82,7 @@ export async function POST(request: NextRequest) {
           suggestions: result.suggestions,
           responseTimeMs: result.responseTimeMs,
         },
-        { status: 404, headers }
+        { status: 404, headers: rateLimitHeaders }
       )
     }
   } catch (error: any) {
