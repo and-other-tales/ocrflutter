@@ -27,55 +27,76 @@ export interface OcrJobResult {
 }
 
 class QueueService {
-  private ocrQueue: Queue<OcrJobData, OcrJobResult>
-  private queueEvents: QueueEvents
-  private redisConnection: Redis
+  private ocrQueue: Queue<OcrJobData, OcrJobResult> | null = null
+  private queueEvents: QueueEvents | null = null
+  private redisConnection: Redis | null = null
+  private isInitialized = false
 
   constructor() {
-    // Create Redis connection
-    this.redisConnection = new Redis({
-      host: ocrConfig.redis.host,
-      port: ocrConfig.redis.port,
-      password: ocrConfig.redis.password,
-      maxRetriesPerRequest: null,
-      retryStrategy: (times: number) => {
-        const delay = Math.min(times * 50, 2000)
-        return delay
-      },
-    })
+    // Skip initialization during build time or if Redis URL is not set
+    if (process.env.NEXT_PHASE === 'phase-production-build' || !ocrConfig.redis.url) {
+      console.log('[Queue] Skipping initialization (build time or no Redis config)')
+      return
+    }
+    this.initialize()
+  }
 
-    // Initialize OCR queue
-    this.ocrQueue = new Queue<OcrJobData, OcrJobResult>('ocr-processing', {
-      connection: this.redisConnection,
-      defaultJobOptions: {
-        attempts: ocrConfig.ocr.maxRetries,
-        backoff: {
-          type: 'exponential',
-          delay: 5000, // Start with 5 seconds
-        },
-        removeOnComplete: {
-          age: 3600 * 24, // Keep completed jobs for 24 hours
-          count: 1000, // Keep last 1000 completed jobs
-        },
-        removeOnFail: {
-          age: 3600 * 24 * 7, // Keep failed jobs for 7 days
-        },
-      },
-    })
+  private initialize() {
+    if (this.isInitialized) return
 
-    // Initialize queue events for monitoring
-    this.queueEvents = new QueueEvents('ocr-processing', {
-      connection: this.redisConnection,
-    })
+    try {
+      // Create Redis connection
+      this.redisConnection = new Redis({
+        host: ocrConfig.redis.host,
+        port: ocrConfig.redis.port,
+        password: ocrConfig.redis.password,
+        maxRetriesPerRequest: null,
+        retryStrategy: (times: number) => {
+          const delay = Math.min(times * 50, 2000)
+          return delay
+        },
+      })
 
-    // Set up event listeners
-    this.setupEventListeners()
+      // Initialize OCR queue
+      this.ocrQueue = new Queue<OcrJobData, OcrJobResult>('ocr-processing', {
+        connection: this.redisConnection,
+        defaultJobOptions: {
+          attempts: ocrConfig.ocr.maxRetries,
+          backoff: {
+            type: 'exponential',
+            delay: 5000, // Start with 5 seconds
+          },
+          removeOnComplete: {
+            age: 3600 * 24, // Keep completed jobs for 24 hours
+            count: 1000, // Keep last 1000 completed jobs
+          },
+          removeOnFail: {
+            age: 3600 * 24 * 7, // Keep failed jobs for 7 days
+          },
+        },
+      })
+
+      // Initialize queue events for monitoring
+      this.queueEvents = new QueueEvents('ocr-processing', {
+        connection: this.redisConnection,
+      })
+
+      // Set up event listeners
+      this.setupEventListeners()
+
+      this.isInitialized = true
+    } catch (error) {
+      console.error('[Queue] Initialization error:', error)
+      // Don't throw during build time
+    }
   }
 
   /**
    * Set up event listeners for queue monitoring
    */
   private setupEventListeners(): void {
+    if (!this.queueEvents) return
+
     this.queueEvents.on('completed', ({ jobId, returnvalue }) => {
       console.log(`[Queue] Job ${jobId} completed:`, returnvalue)
     })
@@ -98,6 +119,10 @@ class QueueService {
     language?: string,
     orientationHint?: 'HORIZONTAL' | 'VERTICAL_TATEGAKI'
   ): Promise<string> {
+    if (!this.ocrQueue) {
+      throw new OcrError('Queue service not initialized', OcrErrorCodes.QUEUE_ERROR, 500)
+    }
+
     try {
       const job = await this.ocrQueue.add(
         'process-pdf',
