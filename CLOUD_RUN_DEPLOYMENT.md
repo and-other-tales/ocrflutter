@@ -110,8 +110,8 @@ gcloud run services describe novel-ocr-admin \
 # Test health endpoint
 curl https://your-service-url/api/health
 
-# Test login
-# Visit https://your-service-url/login
+# Test admin login
+# Visit https://your-service-url/admin
 # Email: admin@example.com
 # Password: YOUR_ADMIN_PASSWORD
 ```
