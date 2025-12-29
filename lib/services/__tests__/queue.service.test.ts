@@ -53,55 +53,67 @@ describe('QueueService', () => {
         if (!this.ocrQueue) {
           throw new OcrError('Queue service not initialized', OcrErrorCodes.QUEUE_ERROR, 500)
         }
-        const job = await this.ocrQueue.add('process-pdf', {
-          manuscriptId,
-          pdfStoragePath,
-          language,
-          orientationHint,
-        }, {
-          jobId: `ocr-${manuscriptId}`,
-        })
-        return job.id!
+        try {
+          const job = await this.ocrQueue.add('process-pdf', {
+            manuscriptId,
+            pdfStoragePath,
+            language,
+            orientationHint,
+          }, {
+            jobId: `ocr-${manuscriptId}`,
+          })
+          return job.id!
+        } catch (error: any) {
+          throw new OcrError(`Failed to queue OCR job: ${error.message}`, OcrErrorCodes.QUEUE_ERROR, 500)
+        }
       },
 
       getJobStatus: async function(jobId: string) {
         if (!this.ocrQueue) {
           return { status: 'unknown' }
         }
-        const job = await this.ocrQueue.getJob(jobId)
-        if (!job) {
-          return { status: 'unknown' }
-        }
-        const state = await job.getState()
-        const progress = job.progress
-        const attemptsMade = job.attemptsMade
+        try {
+          const job = await this.ocrQueue.getJob(jobId)
+          if (!job) {
+            return { status: 'unknown' }
+          }
+          const state = await job.getState()
+          const progress = job.progress
+          const attemptsMade = job.attemptsMade
 
-        if (state === 'completed') {
+          if (state === 'completed') {
+            return {
+              status: 'completed',
+              result: job.returnvalue,
+              attemptsMade,
+            }
+          }
+          if (state === 'failed') {
+            return {
+              status: 'failed',
+              error: job.failedReason,
+              attemptsMade,
+            }
+          }
           return {
-            status: 'completed',
-            result: job.returnvalue,
+            status: state,
+            progress,
             attemptsMade,
           }
-        }
-        if (state === 'failed') {
-          return {
-            status: 'failed',
-            error: job.failedReason,
-            attemptsMade,
-          }
-        }
-        return {
-          status: state,
-          progress,
-          attemptsMade,
+        } catch (error: any) {
+          throw new OcrError(`Failed to get job status: ${error.message}`, OcrErrorCodes.QUEUE_ERROR, 500)
         }
       },
 
       getJobByManuscriptId: async function(manuscriptId: string) {
         if (!this.ocrQueue) return null
-        const jobId = `ocr-${manuscriptId}`
-        const job = await this.ocrQueue.getJob(jobId)
-        return job || null
+        try {
+          const jobId = `ocr-${manuscriptId}`
+          const job = await this.ocrQueue.getJob(jobId)
+          return job || null
+        } catch (error: any) {
+          return null
+        }
       },
 
       retryJob: async function(jobId: string) {
@@ -124,37 +136,56 @@ describe('QueueService', () => {
         if (!this.ocrQueue) {
           throw new OcrError('Queue service not initialized', OcrErrorCodes.QUEUE_ERROR, 500)
         }
-        const job = await this.ocrQueue.getJob(jobId)
-        if (!job) {
-          throw new OcrError('Job not found', OcrErrorCodes.QUEUE_ERROR, 404)
+        try {
+          const job = await this.ocrQueue.getJob(jobId)
+          if (!job) {
+            throw new OcrError('Job not found', OcrErrorCodes.QUEUE_ERROR, 404)
+          }
+          await job.remove()
+        } catch (error: any) {
+          if (error instanceof OcrError) {
+            throw error
+          }
+          throw new OcrError(`Failed to remove job: ${error.message}`, OcrErrorCodes.QUEUE_ERROR, 500)
         }
-        await job.remove()
       },
 
       getQueueMetrics: async function() {
         if (!this.ocrQueue) {
           return { waiting: 0, active: 0, completed: 0, failed: 0, delayed: 0 }
         }
-        const [waiting, active, completed, failed, delayed] = await Promise.all([
-          this.ocrQueue.getWaitingCount(),
-          this.ocrQueue.getActiveCount(),
-          this.ocrQueue.getCompletedCount(),
-          this.ocrQueue.getFailedCount(),
-          this.ocrQueue.getDelayedCount(),
-        ])
-        return { waiting, active, completed, failed, delayed }
+        try {
+          const [waiting, active, completed, failed, delayed] = await Promise.all([
+            this.ocrQueue.getWaitingCount(),
+            this.ocrQueue.getActiveCount(),
+            this.ocrQueue.getCompletedCount(),
+            this.ocrQueue.getFailedCount(),
+            this.ocrQueue.getDelayedCount(),
+          ])
+          return { waiting, active, completed, failed, delayed }
+        } catch (error: any) {
+          throw new OcrError(`Failed to get queue metrics: ${error.message}`, OcrErrorCodes.QUEUE_ERROR, 500)
+        }
       },
 
       cleanQueue: async function(grace = 3600 * 24 * 7, limit = 1000) {
         if (!this.ocrQueue) return
-        await this.ocrQueue.clean(grace * 1000, limit, 'completed')
-        await this.ocrQueue.clean(grace * 1000, limit, 'failed')
+        try {
+          await this.ocrQueue.clean(grace * 1000, limit, 'completed')
+          await this.ocrQueue.clean(grace * 1000, limit, 'failed')
+        } catch (error: any) {
+          throw new OcrError(`Failed to clean queue: ${error.message}`, OcrErrorCodes.QUEUE_ERROR, 500)
+        }
       },
 
       close: async function() {
-        if (this.queueEvents) await this.queueEvents.close()
-        if (this.ocrQueue) await this.ocrQueue.close()
-        if (this.redisConnection) await this.redisConnection.quit()
+        try {
+          if (this.queueEvents) await this.queueEvents.close()
+          if (this.ocrQueue) await this.ocrQueue.close()
+          if (this.redisConnection) await this.redisConnection.quit()
+        } catch (error: any) {
+          // Log error but don't throw
+        }
       },
 
       getQueue: function() {
