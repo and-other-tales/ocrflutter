@@ -28,9 +28,10 @@ COPY . .
 # Set build-time environment variables
 ENV NEXT_TELEMETRY_DISABLED 1
 ENV NODE_ENV production
+ENV NODE_OPTIONS="--max-old-space-size=2048"
 
-# Build the application
-RUN npm run build
+# Build the application with extended timeout
+RUN npm run build --prefer-offline --no-audit
 
 # Stage 3: Runner
 FROM node:20-alpine AS runner
