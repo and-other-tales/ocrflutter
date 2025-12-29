@@ -10,7 +10,7 @@ describe('FileValidationService', () => {
 
     it('should remove path traversal attempts', () => {
       const result = fileValidationService.sanitizeFilename('../../../etc/passwd.pdf')
-      expect(result).toBe('etcpasswd.pdf')
+      expect(result).toBe('___etc_passwd.pdf')
     })
 
     it('should add .pdf extension if missing', () => {

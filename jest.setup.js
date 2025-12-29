@@ -34,6 +34,9 @@ jest.mock('next-auth/react', () => ({
   signOut: jest.fn(),
 }))
 
+// Mock file-type (ESM module)
+jest.mock('file-type')
+
 // Mock environment variables for tests
 process.env.GOOGLE_CLOUD_PROJECT_ID = 'test-project'
 process.env.GCS_BUCKET_NAME = 'test-bucket'
