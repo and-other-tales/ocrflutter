@@ -41,10 +41,10 @@ export async function GET(request: NextRequest) {
     // List manuscripts
     const result = await manuscriptService.listManuscripts(
       {
-        status: query.status,
-        language: query.language,
-        uploadedBy: query.uploadedBy,
-        search: query.search,
+        status: query.status as any,
+        language: query.language as string | undefined,
+        uploadedBy: query.uploadedBy as string | undefined,
+        search: query.search as string | undefined,
       },
       query.page,
       query.limit
