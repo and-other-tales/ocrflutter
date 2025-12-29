@@ -198,7 +198,7 @@ describe('QueueService', () => {
       const mockJob = { id: 'ocr-test-id' }
       mockQueue.add.mockResolvedValue(mockJob)
 
-      await queueService.addOcrJob('test-id', 'manuscripts/test.pdf')
+      await testQueue.addOcrJob('test-id', 'manuscripts/test.pdf')
 
       expect(mockQueue.add).toHaveBeenCalledWith(
         'process-pdf',
@@ -216,11 +216,11 @@ describe('QueueService', () => {
       mockQueue.add.mockRejectedValue(new Error('Redis connection failed'))
 
       await expect(
-        queueService.addOcrJob('test-id', 'manuscripts/test.pdf')
+        testQueue.addOcrJob('test-id', 'manuscripts/test.pdf')
       ).rejects.toThrow(OcrError)
 
       await expect(
-        queueService.addOcrJob('test-id', 'manuscripts/test.pdf')
+        testQueue.addOcrJob('test-id', 'manuscripts/test.pdf')
       ).rejects.toMatchObject({
         code: OcrErrorCodes.QUEUE_ERROR,
         statusCode: 500,
@@ -303,7 +303,7 @@ describe('QueueService', () => {
     it('should throw OcrError if operation fails', async () => {
       mockQueue.getJob.mockRejectedValue(new Error('Redis error'))
 
-      await expect(queueService.getJobStatus('job-123')).rejects.toThrow(OcrError)
+      await expect(testQueue.getJobStatus('job-123')).rejects.toThrow(OcrError)
     })
   })
 
@@ -360,7 +360,7 @@ describe('QueueService', () => {
     it('should throw OcrError if job not found', async () => {
       mockQueue.getJob.mockResolvedValue(null)
 
-      await expect(queueService.retryJob('non-existent')).rejects.toThrow('Job not found')
+      await expect(testQueue.retryJob('non-existent')).rejects.toThrow('Job not found')
     })
 
     it('should throw OcrError if job is not in failed state', async () => {
@@ -371,7 +371,7 @@ describe('QueueService', () => {
 
       mockQueue.getJob.mockResolvedValue(mockJob)
 
-      await expect(queueService.retryJob('job-123')).rejects.toThrow(
+      await expect(testQueue.retryJob('job-123')).rejects.toThrow(
         'Cannot retry job in state: completed'
       )
     })
@@ -394,7 +394,7 @@ describe('QueueService', () => {
     it('should throw OcrError if job not found', async () => {
       mockQueue.getJob.mockResolvedValue(null)
 
-      await expect(queueService.removeJob('non-existent')).rejects.toThrow('Job not found')
+      await expect(testQueue.removeJob('non-existent')).rejects.toThrow('Job not found')
     })
 
     it('should throw OcrError if removal fails', async () => {
@@ -405,7 +405,7 @@ describe('QueueService', () => {
 
       mockQueue.getJob.mockResolvedValue(mockJob)
 
-      await expect(queueService.removeJob('job-123')).rejects.toThrow(OcrError)
+      await expect(testQueue.removeJob('job-123')).rejects.toThrow(OcrError)
     })
   })
 
@@ -431,7 +431,7 @@ describe('QueueService', () => {
     it('should throw OcrError if metrics retrieval fails', async () => {
       mockQueue.getWaitingCount.mockRejectedValue(new Error('Redis error'))
 
-      await expect(queueService.getQueueMetrics()).rejects.toThrow(OcrError)
+      await expect(testQueue.getQueueMetrics()).rejects.toThrow(OcrError)
     })
   })
 
@@ -458,7 +458,7 @@ describe('QueueService', () => {
     it('should throw OcrError if cleaning fails', async () => {
       mockQueue.clean.mockRejectedValue(new Error('Redis error'))
 
-      await expect(queueService.cleanQueue()).rejects.toThrow(OcrError)
+      await expect(testQueue.cleanQueue()).rejects.toThrow(OcrError)
     })
   })
 
@@ -479,7 +479,7 @@ describe('QueueService', () => {
       mockQueueEvents.close.mockRejectedValue(new Error('Close error'))
 
       // Should not throw
-      await expect(queueService.close()).resolves.toBeUndefined()
+      await expect(testQueue.close()).resolves.toBeUndefined()
     })
   })
 
