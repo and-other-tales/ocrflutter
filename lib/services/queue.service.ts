@@ -179,11 +179,11 @@ class QueueService {
   /**
    * Get job by manuscript ID
    */
-  async getJobByManuscriptId(manuscriptId: string): Promise<Job<OcrJobData, OcrJobResult> | null> {
+  async getJobByManuscriptId(manuscriptId: string): Promise<Job<OcrJobData, OcrJobResult> | undefined | null> {
     try {
       const jobId = `ocr-${manuscriptId}`
       const job = await this.ocrQueue.getJob(jobId)
-      return job
+      return job || null
     } catch (error: any) {
       console.error('[Queue] Failed to get job by manuscript ID:', error)
       return null
