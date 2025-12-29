@@ -13,6 +13,28 @@ The docker-compose setup includes:
 - **Redis Commander** (optional): Web UI for Redis (port 8081)
 - **pgAdmin** (optional): Web UI for PostgreSQL (port 5050)
 
+## Important Notes
+
+### Prisma Binary Targets
+
+The application uses Alpine Linux Docker images (node:20-alpine) for smaller image sizes. Prisma requires specific binary targets for Alpine Linux. The `prisma/schema.prisma` file is configured with:
+
+```prisma
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+```
+
+- `native`: For local development (macOS/Linux/Windows)
+- `linux-musl-openssl-3.0.x`: For Alpine Linux Docker containers
+
+If you encounter Prisma initialization errors, regenerate the client:
+
+```bash
+npx prisma generate
+```
+
 ## Prerequisites
 
 - Docker Engine 20.10+
