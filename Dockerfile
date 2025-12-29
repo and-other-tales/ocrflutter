@@ -66,12 +66,13 @@ COPY --from=deps /app/node_modules ./node_modules
 # Switch to non-root user
 USER nextjs
 
-# Expose Cloud Run port
+# Expose ports (8080 for Cloud Run, 3000 for local)
 EXPOSE 8080
+EXPOSE 3000
 
-# Set environment variable for port
+# Set environment variable for port (can be overridden)
 ENV PORT 8080
 ENV HOSTNAME "0.0.0.0"
 
-# Use the startup script
-CMD ["./scripts/startup.sh"]
+# Use the startup script if it exists, otherwise start directly
+CMD ["sh", "-c", "if [ -f ./scripts/startup.sh ]; then ./scripts/startup.sh; else node server.js; fi"]
