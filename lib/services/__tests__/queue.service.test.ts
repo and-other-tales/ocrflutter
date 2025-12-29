@@ -28,7 +28,8 @@ jest.mock('bullmq', () => ({
 }))
 
 jest.mock('ioredis', () => {
-  return jest.fn(() => mockRedis)
+  const Redis = jest.fn(() => mockRedis)
+  return { Redis }
 })
 
 // Import after mocking

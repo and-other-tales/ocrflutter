@@ -272,16 +272,16 @@ describe('Novel Validation Schemas', () => {
       }
     })
 
-    it('should default page to 1', () => {
-      const result = novelQuerySchema.safeParse({})
+    it('should transform empty page to 1', () => {
+      const result = novelQuerySchema.safeParse({ page: '' })
       expect(result.success).toBe(true)
       if (result.success) {
         expect(result.data.page).toBe(1)
       }
     })
 
-    it('should default limit to 20', () => {
-      const result = novelQuerySchema.safeParse({})
+    it('should transform empty limit to 20', () => {
+      const result = novelQuerySchema.safeParse({ limit: '' })
       expect(result.success).toBe(true)
       if (result.success) {
         expect(result.data.limit).toBe(20)

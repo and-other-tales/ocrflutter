@@ -1,27 +1,16 @@
 import { OcrErrorCodes } from '../../utils/errors'
 
-// Mock Google Cloud Storage
-const mockFile = {
-  save: jest.fn(),
-  makePrivate: jest.fn(),
-  getSignedUrl: jest.fn(),
-  download: jest.fn(),
-  delete: jest.fn(),
-  exists: jest.fn(),
-  getMetadata: jest.fn(),
-}
+// Create mocks that will be populated
+let mockFile: any
+let mockBucket: any
 
-const mockBucket = {
-  file: jest.fn(() => mockFile),
-}
-
-const mockStorage = {
-  bucket: jest.fn(() => mockBucket),
-}
-
-jest.mock('@google-cloud/storage', () => ({
-  Storage: jest.fn(() => mockStorage),
-}))
+jest.mock('@google-cloud/storage', () => {
+  return {
+    Storage: jest.fn().mockImplementation(() => ({
+      bucket: jest.fn(() => mockBucket),
+    })),
+  }
+})
 
 // Import after mocking
 import { storageService } from '../storage.service'
@@ -29,6 +18,21 @@ import { OcrError } from '../../utils/errors'
 
 describe('StorageService', () => {
   beforeEach(() => {
+    // Initialize mockFile and mockBucket for each test
+    mockFile = {
+      save: jest.fn(),
+      makePrivate: jest.fn(),
+      getSignedUrl: jest.fn(),
+      download: jest.fn(),
+      delete: jest.fn(),
+      exists: jest.fn(),
+      getMetadata: jest.fn(),
+    }
+
+    mockBucket = {
+      file: jest.fn(() => mockFile),
+    }
+
     jest.clearAllMocks()
   })
 
