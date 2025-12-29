@@ -118,11 +118,11 @@ https://your-service-url/api/novel/lookup   → OCR lookup API
 
 ### Local Development
 ```
-http://localhost:3000                       → https://othertales.co
-http://localhost:3000/admin                 → Admin login
-http://localhost:3000/dashboard             → Dashboard (auth required)
-http://localhost:3000/api/health            → Health check
-http://localhost:3000/api/novel/lookup      → OCR lookup API
+http://localhost:8080                       → https://othertales.co
+http://localhost:8080/admin                 → Admin login
+http://localhost:8080/dashboard             → Dashboard (auth required)
+http://localhost:8080/api/health            → Health check
+http://localhost:8080/api/novel/lookup      → OCR lookup API
 ```
 
 ## Testing Routes

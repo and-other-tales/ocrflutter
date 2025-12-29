@@ -8,7 +8,7 @@ The docker-compose setup includes:
 
 - **PostgreSQL**: Database for storing application data
 - **Redis**: Message queue backend for BullMQ job processing
-- **Web App**: Next.js application (port 3000)
+- **Web App**: Next.js application (port 8080)
 - **Worker**: BullMQ worker for OCR processing
 - **Redis Commander** (optional): Web UI for Redis (port 8081)
 - **pgAdmin** (optional): Web UI for PostgreSQL (port 5050)
@@ -69,12 +69,12 @@ This will:
 1. Start PostgreSQL and Redis
 2. Build the web application and worker
 3. Run database migrations
-4. Start the Next.js app on port 3000
+4. Start the Next.js app on port 8080
 5. Start the BullMQ worker
 
 ### 3. Access the Application
 
-- **Web App**: http://localhost:3000
+- **Web App**: http://localhost:8080
 - **Redis Commander**: http://localhost:8081 (if using `--profile tools`)
 - **pgAdmin**: http://localhost:5050 (if using `--profile tools`)
 

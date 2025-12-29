@@ -115,7 +115,7 @@ This ensures Prisma works correctly in Alpine Linux Docker containers (node:20-a
 
 #### Web Application
 - Built from main Dockerfile
-- Port: 3000 (configurable)
+- Port: 8080 (configurable)
 - Auto-runs migrations on startup
 - Environment-based configuration
 

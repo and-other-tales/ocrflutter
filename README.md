@@ -85,11 +85,11 @@ DATABASE_URL="postgresql://username:password@localhost:5432/novel_ocr_admin"
 
 # NextAuth (generate secret with: openssl rand -base64 32)
 NEXTAUTH_SECRET="your-generated-secret-here"
-NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_URL="http://localhost:8080"
 AUTH_SECRET="your-generated-secret-here"
 
 # API Configuration
-NEXT_PUBLIC_API_URL="http://localhost:3000"
+NEXT_PUBLIC_API_URL="http://localhost:8080"
 ```
 
 **Generate a secure secret:**
@@ -121,7 +121,7 @@ This creates:
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:8080](http://localhost:8080) in your browser.
 
 ## Default Credentials
 
@@ -155,7 +155,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ### Request Format
 
 ```bash
-curl -X POST http://localhost:3000/api/novel/lookup \
+curl -X POST http://localhost:8080/api/novel/lookup \
   -H "Content-Type: application/json" \
   -d '{
     "lines": [
@@ -326,7 +326,7 @@ NEXT_PUBLIC_API_URL="https://your-domain.com"
 
 ### Via API
 ```bash
-curl -X POST http://localhost:3000/api/admin/novels \
+curl -X POST http://localhost:8080/api/admin/novels \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_SESSION_TOKEN" \
   -d '{
@@ -349,7 +349,7 @@ curl -X POST http://localhost:3000/api/admin/novels \
 
 ### Using cURL
 ```bash
-curl -X POST http://localhost:3000/api/novel/lookup \
+curl -X POST http://localhost:8080/api/novel/lookup \
   -H "Content-Type: application/json" \
   -d '{
     "lines": [
