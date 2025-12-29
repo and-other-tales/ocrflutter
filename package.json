@@ -10,7 +10,12 @@
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "docker:build": "docker build -t novel-ocr-admin:latest .",
+    "docker:run": "docker run -p 8080:8080 --env-file .env novel-ocr-admin:latest",
+    "gcloud:build": "gcloud builds submit --tag gcr.io/${PROJECT_ID}/novel-ocr-admin",
+    "gcloud:deploy": "gcloud run deploy novel-ocr-admin --image gcr.io/${PROJECT_ID}/novel-ocr-admin --platform managed --region us-central1 --allow-unauthenticated"
   },
   "dependencies": {
     "next": "^14.2.15",
@@ -42,6 +47,7 @@
     "@radix-ui/react-alert-dialog": "^1.1.2",
     "@radix-ui/react-avatar": "^1.1.1",
     "@radix-ui/react-checkbox": "^1.1.2",
+    "@radix-ui/react-switch": "^1.1.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "tailwind-merge": "^2.5.5",
