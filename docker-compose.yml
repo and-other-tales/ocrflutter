@@ -18,6 +18,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - novel-ocr-network
 
   # Redis for BullMQ job queue
   redis:
@@ -33,6 +35,86 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - novel-ocr-network
+
+  # Next.js Web Application
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: novel-ocr-web
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/novel_ocr_admin
+      - REDIS_URL=redis://redis:6379
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-default-dev-secret-change-in-production}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - AUTH_SECRET=${AUTH_SECRET:-default-dev-secret-change-in-production}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:3000}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      - GOOGLE_CLOUD_PROJECT_ID=${GOOGLE_CLOUD_PROJECT_ID:-}
+      - GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS:-}
+      - GCS_BUCKET_NAME=${GCS_BUCKET_NAME:-}
+      - PDF_MAX_SIZE_MB=${PDF_MAX_SIZE_MB:-50}
+      - OCR_CONFIDENCE_THRESHOLD=${OCR_CONFIDENCE_THRESHOLD:-70}
+      - OCR_MAX_RETRIES=${OCR_MAX_RETRIES:-3}
+      - OCR_TIMEOUT_SECONDS=${OCR_TIMEOUT_SECONDS:-55}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./prisma:/app/prisma
+      - gcp-credentials:/app/credentials:ro
+    networks:
+      - novel-ocr-network
+    restart: unless-stopped
+    command: sh -c "npx prisma migrate deploy && node server.js"
+
+  # BullMQ Worker for OCR Processing
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: novel-ocr-worker
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/novel_ocr_admin
+      - REDIS_URL=redis://redis:6379
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - GOOGLE_CLOUD_PROJECT_ID=${GOOGLE_CLOUD_PROJECT_ID:-}
+      - GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS:-}
+      - GCS_BUCKET_NAME=${GCS_BUCKET_NAME:-}
+      - PDF_MAX_SIZE_MB=${PDF_MAX_SIZE_MB:-50}
+      - OCR_CONFIDENCE_THRESHOLD=${OCR_CONFIDENCE_THRESHOLD:-70}
+      - OCR_MAX_RETRIES=${OCR_MAX_RETRIES:-3}
+      - OCR_TIMEOUT_SECONDS=${OCR_TIMEOUT_SECONDS:-55}
+      - WORKER_CONCURRENCY=${WORKER_CONCURRENCY:-5}
+      - WORKER_RATE_LIMIT_MAX=${WORKER_RATE_LIMIT_MAX:-10}
+      - WORKER_RATE_LIMIT_DURATION=${WORKER_RATE_LIMIT_DURATION:-1000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./prisma:/app/prisma
+      - gcp-credentials:/app/credentials:ro
+    networks:
+      - novel-ocr-network
+    restart: unless-stopped
 
   # Optional: Redis Commander (Redis GUI)
   redis-commander:
@@ -44,6 +126,8 @@ services:
       - '8081:8081'
     depends_on:
       - redis
+    networks:
+      - novel-ocr-network
     profiles:
       - tools
 
@@ -58,11 +142,19 @@ services:
       - '5050:80'
     depends_on:
       - postgres
+    networks:
+      - novel-ocr-network
     profiles:
       - tools
+
+networks:
+  novel-ocr-network:
+    driver: bridge
 
 volumes:
   postgres_data:
     driver: local
   redis_data:
+    driver: local
+  gcp-credentials:
     driver: local
