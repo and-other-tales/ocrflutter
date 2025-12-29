@@ -46,8 +46,8 @@ export async function GET(request: NextRequest) {
         uploadedBy: query.uploadedBy as string | undefined,
         search: query.search as string | undefined,
       },
-      query.page,
-      query.limit
+      query.page as number,
+      query.limit as number
     )
 
     return NextResponse.json(result)
