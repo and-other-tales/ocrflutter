@@ -7,28 +7,28 @@ export const ocrConfig = {
   redis: {
     url: process.env.REDIS_URL || 'redis://localhost:6379',
     host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
+    port: parseInt(process.env.REDIS_PORT || '6379') || 6379,
     password: process.env.REDIS_PASSWORD || undefined,
   },
   upload: {
-    maxSizeMb: parseInt(process.env.PDF_MAX_SIZE_MB || '50'),
-    maxSizeBytes: parseInt(process.env.PDF_MAX_SIZE_MB || '50') * 1024 * 1024,
+    maxSizeMb: parseInt(process.env.PDF_MAX_SIZE_MB || '50') || 50,
+    maxSizeBytes: (parseInt(process.env.PDF_MAX_SIZE_MB || '50') || 50) * 1024 * 1024,
     allowedMimeTypes: ['application/pdf'],
   },
   ocr: {
-    confidenceThreshold: parseFloat(process.env.OCR_CONFIDENCE_THRESHOLD || '70'),
-    maxRetries: parseInt(process.env.OCR_MAX_RETRIES || '3'),
-    timeoutSeconds: parseInt(process.env.OCR_TIMEOUT_SECONDS || '55'),
+    confidenceThreshold: parseFloat(process.env.OCR_CONFIDENCE_THRESHOLD || '70') || 70,
+    maxRetries: parseInt(process.env.OCR_MAX_RETRIES || '3') || 3,
+    timeoutSeconds: parseInt(process.env.OCR_TIMEOUT_SECONDS || '55') || 55,
   },
   worker: {
-    concurrency: parseInt(process.env.WORKER_CONCURRENCY || '5'),
-    rateLimitMax: parseInt(process.env.WORKER_RATE_LIMIT_MAX || '10'),
-    rateLimitDuration: parseInt(process.env.WORKER_RATE_LIMIT_DURATION || '1000'),
+    concurrency: parseInt(process.env.WORKER_CONCURRENCY || '5') || 5,
+    rateLimitMax: parseInt(process.env.WORKER_RATE_LIMIT_MAX || '10') || 10,
+    rateLimitDuration: parseInt(process.env.WORKER_RATE_LIMIT_DURATION || '1000') || 1000,
   },
   malwareScan: {
     enabled: process.env.ENABLE_MALWARE_SCAN === 'true',
     host: process.env.CLAMAV_HOST || 'localhost',
-    port: parseInt(process.env.CLAMAV_PORT || '3310'),
+    port: parseInt(process.env.CLAMAV_PORT || '3310') || 3310,
   },
 }
 

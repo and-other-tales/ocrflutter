@@ -1,8 +1,5 @@
 "use client"
 
-// Prevent static generation for all dashboard pages
-export const dynamic = "force-dynamic"
-
 import { SessionProvider } from "next-auth/react"
 import { Sidebar } from "@/components/layouts/Sidebar"
 import { TopNav } from "@/components/layouts/TopNav"
