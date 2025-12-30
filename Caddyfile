@@ -5,13 +5,13 @@
 }
 
 # Local development configuration
-localhost:80, 127.0.0.1:80 {
-  # Reverse proxy to Next.js application
+localhost {
+  # Simple reverse proxy to Next.js application container
   reverse_proxy web:8080 {
-    # Preserve original headers
-    header_up X-Forwarded-Host {http.request.host}
-    header_up X-Forwarded-Proto {http.request.proto}
-    header_up X-Forwarded-For {http.request.remote}
+    transport http {
+      read_timeout 30s
+      dial_timeout  5s
+    }
   }
 
   # Enable compression
