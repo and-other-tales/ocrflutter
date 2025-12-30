@@ -21,7 +21,10 @@ export const ocrConfig = {
     timeoutSeconds: parseInt(process.env.OCR_TIMEOUT_SECONDS || '55'),
   },
   worker: {
-    concurrency: parseInt(process.env.WORKER_CONCURRENCY || '5'),
+    concurrency: (() => {
+      const n = parseInt(process.env.WORKER_CONCURRENCY || '5', 10)
+      return Number.isFinite(n) && n > 0 ? n : 5
+    })(),
     rateLimitMax: parseInt(process.env.WORKER_RATE_LIMIT_MAX || '10'),
     rateLimitDuration: parseInt(process.env.WORKER_RATE_LIMIT_DURATION || '1000'),
   },
