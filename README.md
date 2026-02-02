@@ -1,6 +1,6 @@
-# Novel OCR Admin Panel
+# Read-A-Long Management (WIP)
 
-A production-ready admin panel for managing the Novel OCR Lookup system. Built for PI & Other Tales, Inc. to manage novel fingerprints and OCR-based content unlocking.
+An admin suite for managing an early test of a Flutter based application that can detect page content from a given book based on the placement of individual randomised letters in the first 3 rows top-left. When Identified, a Flutter based client app can begin streaming an audiobook recording from that individual page starting point. 
 
 ## Features
 
