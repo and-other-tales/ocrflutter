@@ -369,7 +369,7 @@ For issues and questions:
 
 ## License
 
-Proprietary - © 2024 PI & Other Tales, Inc.
+[MIT]
 
 ## Roadmap
 
