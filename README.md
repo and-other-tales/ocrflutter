@@ -387,3 +387,5 @@ For issues and questions:
 ---
 
 **Built with** ❤️ **by Claude Code for PI & Other Tales, Inc.**
+
+Copyright (c) 2025 PI & Other Tales (David James Lennon)
