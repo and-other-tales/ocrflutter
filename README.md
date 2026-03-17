@@ -1,5 +1,7 @@
 # Read-A-Long Management (WIP)
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 An admin suite for managing an early test of a Flutter based application that can detect page content from a given book based on the placement of individual randomised letters in the first 3 rows top-left. When Identified, a Flutter based client app can begin streaming an audiobook recording from that individual page starting point. 
 
 ## Features
